@@ -1,65 +1,79 @@
 require_relative "../config/environment.rb"
 
+
 class Student
-  attr_accessor :name,:grade,:id
-  
+
   # Remember, you can access your database connection anywhere in this class
   #  with DB[:conn]
-  def initialize(id=nil,name,grade)
-    @id = id,
-    @name= name,
-    @grade = grade
-  end 
+  attr_accessor :name, :grade, :id
+  def initialize(id=nil, name, grade)
+    @id = id
+    self.name = name
+    self.grade = grade
+  end
 
-def self.create_table
-  sql = <<-SQL
-  CREATE  TABLE  IF NOT EXISTS students(
-  id INTEGER PRIMARY KEY,
-  name TEXT,
-  grade INTEGER
-  )
-  SQL
-  DB[:conn].execute(sql)
-end 
+  def self.create_table
+    sql = <<-SQL
+                create table if not exists students (
+                  id integer Primary Key,
+                  name text,
+                  grade text
+                )
+    SQL
 
-def self.drop_table
-  sql = <<-SQL
-  DROP TABLE students 
-  SQL
-  DB[:conn].execute(sql)
-end 
+    DB[:conn].execute(sql)
+  end
 
-def self.new_from_db(row)
-    # create a new Student object given a row from the database
-    new_student = self.new(id,name,grade)
-    new_student.id = row[0]
-    new_student.name = row[1]
-    new_student.grade = row[2]
+  def self.drop_table
+    sql = <<-SQL
+                drop table if exists students
+    SQL
+
+    DB[:conn].execute(sql)
+  end
+
+  def save
+    if self.id
+        self.update
+    else
+      sql = <<-SQL
+        Insert into students (name, grade) values (?, ?)
+      SQL
+
+      DB[:conn].execute(sql, self.name, self.grade)
+      @id = DB[:conn].execute("Select last_insert_rowid() from students").flatten.first
+    end
+  end
+
+  def update
+    sql = <<-SQL
+      update students
+        set name = ?,
+           grade = ?
+      where id = ?
+    SQL
+
+    DB[:conn].execute(sql, self.name, self.grade, self.id)
+  end
+
+  def self.create(name, grade)
+    s = self.new(name, grade)
+    s.save
+    s
+  end
+
+  def self.new_from_db(row)
+    new_student = self.new(row[0], row[1], row[2])
     new_student
   end
 
-def save
-   if self.id
-        self.update
-    else
+  def self.find_by_name(name)
     sql = <<-SQL
-      INSERT INTO students (name, grade) 
-      VALUES (?, ?)
+      select * from students where name = ?
     SQL
 
-    DB[:conn].execute(sql, self.name, self.grade)
-    @id = DB[:conn].execute("SELECT last_insert_rowid() FROM students")[0][0]
+    DB[:conn].execute(sql, name).map do |student|
+      self.new_from_db(student)
+    end.first
   end
-  end
-  
-  def self.create(name,grade)
-    student = Student.new(name,grade)
-    student.save
-    student
-  end 
- 
- 
-# def self.find_by_name(name)
-   
-# end 
 end

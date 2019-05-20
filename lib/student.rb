@@ -27,7 +27,7 @@ class Student
 
   def self.drop_table
     sql = <<-SQL
-                drop table if exists students
+                DROP TABLE IF EXISTS students
     SQL
 
     DB[:conn].execute(sql)
@@ -38,11 +38,11 @@ class Student
         self.update
     else
       sql = <<-SQL
-        Insert into students (name, grade) values (?, ?)
+       INSERT INTO students (name, grade) VALUES (?, ?)
       SQL
 
       DB[:conn].execute(sql, self.name, self.grade)
-      @id = DB[:conn].execute("Select last_insert_rowid() from students").flatten.first
+      @id = DB[:conn].execute("SELECT last_insert_rowid() FROM students").flatten.first
     end
   end
 
